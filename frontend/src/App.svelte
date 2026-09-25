@@ -4,6 +4,7 @@
   let token = localStorage.getItem('herb_token') || ''
   let role = localStorage.getItem('herb_role') || ''
   let rows = []
+  let detail = null
   let herb = '白芍'
   let tempC = 110
   let minutes = 10
@@ -36,6 +37,14 @@
 
   async function load() {
     rows = await api('/api/batches')
+  }
+
+  async function open(row) {
+    detail = await api(`/api/batches/${row.id}`)
+  }
+
+  function closeDetail() {
+    detail = null
   }
 
   async function save() {
@@ -84,9 +93,25 @@
     {/if}
     <ul>
       {#each rows as row}
-        <li>{row.herb} · {row.verdict} · {row.reason} · 温度 {row.doc.steps[0].temp_c}</li>
+        <li>
+          <a href={'#' + row.id} on:click|preventDefault={() => open(row)}>
+            {row.herb} · {row.verdict} · {row.reason} · 温度 {row.doc.steps[0].temp_c}℃
+          </a>
+        </li>
       {/each}
     </ul>
+    {#if detail}
+      <section>
+        <h2>{detail.herb} · {detail.verdict}</h2>
+        <p>{detail.reason}（记录人 {detail.created_by}）</p>
+        <ul>
+          {#each detail.doc.steps as step}
+            <li>{step.name} · 温度 {step.temp_c}℃ · 时长 {step.minutes} 分钟</li>
+          {/each}
+        </ul>
+        <button on:click={closeDetail}>关闭详情</button>
+      </section>
+    {/if}
   {/if}
 </main>
 

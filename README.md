@@ -29,3 +29,15 @@ docker compose up --build
 1. processor 登录后，甘草为放行，黄芩为未放行（温度过低）。
 2. 再写一条温度 200 的清炒，结论仍是未放行。
 3. checker 看不到写入按钮。
+
+## 核对
+
+```bash
+# 判定单测（放行 / 未放行各一组，无需数据库）
+cd backend && python3 -m pytest test_rules.py -q
+
+# 端到端核对（需先 docker compose up --build）
+python3 scripts/verify_e2e.py
+```
+
+端到端核对覆盖：105℃/9min 放行且列表与详情都显示真实温度 105；黄芩继续未放行且温度不压空；200℃ 未放行；checker 写入被拒。
