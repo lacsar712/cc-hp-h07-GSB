@@ -5,9 +5,11 @@
   let role = localStorage.getItem('herb_role') || ''
   let rows = []
   let herb = '白芍'
-  let tempC = 110
-  let minutes = 10
+  let tempC = 105
+  let minutes = 9
   let error = ''
+  let detail = null
+  let detailId = null
 
   async function api(path, options = {}) {
     const res = await fetch(path, {
@@ -20,6 +22,10 @@
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.detail || '请求失败')
     return data
+  }
+
+  function fryStep(doc) {
+    return (doc?.steps || []).find((s) => s.name === '清炒') || doc?.steps?.[0] || {}
   }
 
   async function enter() {
@@ -36,6 +42,7 @@
 
   async function load() {
     rows = await api('/api/batches')
+    if (detailId !== null) await openDetail(detailId)
   }
 
   async function save() {
@@ -54,10 +61,22 @@
     }
   }
 
+  async function openDetail(id) {
+    detail = await api(`/api/batches/${id}`)
+    detailId = id
+  }
+
+  function closeDetail() {
+    detail = null
+    detailId = null
+  }
+
   function leave() {
     localStorage.clear()
     token = ''
     role = ''
+    detail = null
+    detailId = null
   }
 
   if (token) load()
@@ -84,9 +103,27 @@
     {/if}
     <ul>
       {#each rows as row}
-        <li>{row.herb} · {row.verdict} · {row.reason} · 温度 {row.doc.steps[0].temp_c}</li>
+        {@const fry = fryStep(row.doc)}
+        <li>
+          {row.herb} · {row.verdict} · {row.reason} · 温度 {fry.temp_c} ℃ · 时长 {fry.minutes} 分钟
+          <button on:click={() => openDetail(row.id)}>详情</button>
+        </li>
       {/each}
     </ul>
+    {#if detail}
+      <section class="detail">
+        <h2>记录详情 #{detail.id}</h2>
+        <p>饮片：{detail.herb}</p>
+        <p>结论：{detail.verdict} · {detail.reason}</p>
+        <p>录入人：{detail.created_by}</p>
+        <ul>
+          {#each detail.doc.steps as step}
+            <li>{step.name} · 温度 {step.temp_c} ℃ · 时长 {step.minutes} 分钟</li>
+          {/each}
+        </ul>
+        <button on:click={closeDetail}>关闭详情</button>
+      </section>
+    {/if}
   {/if}
 </main>
 
@@ -94,4 +131,6 @@
   main { font-family: sans-serif; max-width: 720px; margin: 24px auto; color: #3f2f1f; }
   h1 { color: #7c2d12; }
   input { margin-right: 8px; padding: 6px; }
+  li { margin: 4px 0; }
+  .detail { border: 1px solid #d6c3ae; border-radius: 6px; padding: 12px 16px; margin-top: 16px; }
 </style>
